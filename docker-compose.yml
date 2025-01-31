@@ -1,0 +1,29 @@
+version: '2'
+
+services:
+
+  lndc-backend:
+    container_name: lndc-backend-container
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: lndc-backend:latest
+    ports:
+      - 8090:8080
+
+  postgres:
+    image: postgres:latest  # Official PostgreSQL image from Docker Hub
+    container_name: postgres_container
+    environment:
+      POSTGRES_USER: postgres  # Default PostgreSQL user
+      POSTGRES_PASSWORD: admin  # Set your password here
+      POSTGRES_DB: lndc  # Set the database name if needed
+    ports:
+      - "5432:5432"  # Expose PostgreSQL to the host on port 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persist database data
+    restart: always  # Automatically restart the container if it stops
+
+volumes:
+  postgres_data:
+    driver: local  # Volume for persisting data
