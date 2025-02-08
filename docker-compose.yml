@@ -1,4 +1,4 @@
-version: '2'
+version: '3.8'
 
 services:
 
@@ -12,18 +12,18 @@ services:
       - 8090:8080
 
   postgres:
-    image: postgres:latest  # Official PostgreSQL image from Docker Hub
-    container_name: postgres_container
+    image: postgres:latest
+    container_name: my_postgres
+    restart: always
     environment:
-      POSTGRES_USER: postgres  # Default PostgreSQL user
-      POSTGRES_PASSWORD: admin  # Set your password here
-      POSTGRES_DB: lndc  # Set the database name if needed
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
     ports:
-      - "5432:5432"  # Expose PostgreSQL to the host on port 5432
+      - "5433:5432"  # Running on 5433 to avoid conflicts with local PostgreSQL
     volumes:
-      - postgres_data:/var/lib/postgresql/data  # Persist database data
-    restart: always  # Automatically restart the container if it stops
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
   postgres_data:
-    driver: local  # Volume for persisting data
+    driver: local
