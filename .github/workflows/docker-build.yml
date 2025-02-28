@@ -1,0 +1,80 @@
+name: Build & Deploy Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      skipTests:
+        description: "Skip JUnit Tests"
+        required: false
+        default: "false"
+      skipSonar:
+        description: "Skip Sonar Analysis"
+        required: false
+        default: "false"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      TAG_VERSION: build_${{ github.run_number }}
+      SKIP_TESTS: ${{ github.event.inputs.skipTests || 'false' }}
+      SKIP_SONAR: ${{ github.event.inputs.skipSonar || 'false' }}
+      DOCKER_IMAGE_NAME: myapp-backend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Maven
+        uses: s4u/setup-maven-action@v1
+        with:
+          maven-version: 3.8.2
+
+      - name: Build with Maven
+        run: mvn clean install -DskipTests=${{ env.SKIP_TESTS }}
+
+      - name: SonarQube Analysis
+        if: env.SKIP_SONAR == 'false'
+        uses: sonarsource/sonarqube-scan-action@v2.0.2
+        with:
+          args: >
+            -Dsonar.projectKey=myapp
+            -Dsonar.host.url=https://sonarqube.example.com
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/myapp:${{ env.TAG_VERSION }} .
+          docker tag ${{ secrets.DOCKER_USERNAME }}/myapp:${{ env.TAG_VERSION }} ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+
+      - name: Push Docker Image to Registry
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/myapp:${{ env.TAG_VERSION }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/myapp:latest
+
+      - name: Tag Release in GitHub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git tag -a ${{ env.TAG_VERSION }} -m "Add tag for ${{ env.TAG_VERSION }}"
+          git push origin --tags
