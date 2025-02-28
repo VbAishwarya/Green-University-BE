@@ -38,9 +38,9 @@ jobs:
           java-version: '21'
 
       - name: Set up Maven
-        uses: s4u/setup-maven-action@v1
-        with:
-          maven-version: 3.8.2
+        run: |
+          sudo apt update
+          sudo apt install -y maven
 
       - name: Build with Maven
         run: mvn clean install -DskipTests=${{ env.SKIP_TESTS }}
